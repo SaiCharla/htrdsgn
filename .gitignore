@@ -1,0 +1,7 @@
+# Blacklist everything
+*
+# Whitelist all directories
+!*/
+__pycache__/  	# Blacklist __pycache__ directory
+# Whitelist the file you're interested in.
+!*.py
