@@ -29,6 +29,7 @@ else:
     f = 1.5
 
 Vmax = 60    # Maximum voltage
+Imax = 10    # Maximum current
 
 # Connection codes
 cons = ['Series-Parallel', '4-lead-Series  ', '4-lead-Parallel',
@@ -76,51 +77,57 @@ class HtrConn:
         self.htr = htr
         self.l = l
         self.conn = conn
-        self.imax = get_imax(self.htr, self.l, self.conn)
-        self.vmax = get_vmax(self.htr, self.l, self.conn)
-        self.details = [self.htr.code, self.l, self.conn, self.imax, self.vmax]
+        self.imax = self.get_imax()
+        self.vmax = self.get_vmax()
 
     def __str__(self):
         # for printing
         s = "{} type,\t {} ft,\t {},\t {} amp,\t {} V"
         heater = self.htr.code
-        length = str(round(self.l,2)).rjust(2, '0')
+        length = str(round(self.l, 2)).rjust(5, '0')
         connection = self.conn
-        imax = str(round(self.imax, 2)).rjust(2, '0')
-        vmax = str(round(self.vmax, 2)).rjust(2, '0')
+        imax = str(round(self.imax, 2)).rjust(5, '0')
+        vmax = str(round(self.vmax, 2)).rjust(5, '0')
         return s.format(heater, length, connection, imax, vmax)
 
     def __repr__(self):
         return self.__str__()
 
+    def get_imax(self):
+        """ Get the max. current for given heater length connection"""
+        pmaxlead = self.htr.maxWatt/f
+        rlead = self.htr.ohmsPerFt*l
+        nprls = condctbr[self.conn]
+        imax = m.sqrt(pmaxlead/rlead) * nprls
+        return imax
+
+    def get_vmax(self):
+        """ Get max. voltage for the given connection"""
+        pmax = (self.htr.maxWatt/f) * condctp[self.conn]
+        r = condctr[self.conn](self.htr.ohmsPerFt*self.l)
+        vmax = m.sqrt(pmax*r)
+        return vmax
+
+    def check_vmax(self):
+        """ CHecks if vmax is less than 60V"""
+        if self.vmax <= Vmax:
+            return True
+        else:
+            return False
+
+    def check_imax(self):
+        """Checks the maximum current 10amp"""
+        if self.imax <= Imax:
+            return True
+        else:
+            return False
+
+    def check_vmax_imax(self):
+        """ checks both imax and vmax"""
+        return self.check_vmax() and self.check_imax()
 
 
-
-def get_imax(htr, l, conn):
-    """ Get the max. current for given heater length connection"""
-    pmaxlead = htr.maxWatt/f
-    rlead = htr.ohmsPerFt*l
-    nprls = condctbr[conn]
-    imax = m.sqrt(pmaxlead/rlead) * nprls
-    return imax
-
-
-def get_vmax(htr, l, conn):
-    """ Get max. voltage for the given connection"""
-    pmax = (htr.maxWatt/f) * condctp[conn]
-    r = condctr[conn](htr.ohmsPerFt*l)
-    vmax = m.sqrt(pmax*r)
-    return vmax
-
-def check_vmax(htr, l, conn):
-    """ CHecks if vmax is less than 60V"""
-    vmax = get_vmax(htr, l, conn)
-    if vmax <= 60:
-        return True
-    else:
-        return False
-
-def req_len(w, htr, cond):
+def req_len(htr, cond):
     """ returns the required length of the heater for various conditions"""
     leaddissip = htr.maxWatt/f
     if cond==0:
@@ -130,31 +137,35 @@ def req_len(w, htr, cond):
     return dissperlead/leaddissip
 
 
-phtrs = []
-for heater in hlist:
-    for cond in [0,1]:
-        reqlength = req_len(w, heater, cond)
-        if l-tol <= reqlength <= l+tol:
-            phtrs.append((heater, reqlength, cond))
+def length_sizing():
+    """ Returns a list of possible heaters and corresponding connections"""
+    phtrs = []
+    for heater in hlist:
+        for cond in [0,1]:
+            reqlength = req_len(heater, cond)
+            if l-tol <= reqlength <= l+tol:
+                phtrs.append((heater, reqlength, cond))
+    return phtrs
 
 
-phcons = []
-for pht in phtrs:
-    if pht[2]==0:
-        for connection in cons[0:3]:
-            if check_vmax(pht[0], pht[1], connection):
-                phcons.append((pht[0], pht[1], connection))
-        for connection in cons[3:5]:
-            if check_vmax(pht[0], pht[1], connection):
-                phcons.append((pht[0], pht[1], connection))
+def possible_heaters():
+    """ Returns The list of possible heaters sorted in order of voltage"""
+    hconlist = []
+    for details in length_sizing():
+        heater = details[0]
+        length = details[1]
+        cond = details[2]
+        if cond==0:
+            for connection in cons[0:3]:
+                heatercon = HtrConn(heater, length, connection)
+                if heatercon.check_vmax_imax():
+                    hconlist.append(heatercon)
+        if cond==1:
+            for connection in cons[3:5]:
+                heatercon = HtrConn(heater, length, connection)
+                if heatercon.check_vmax_imax():
+                    hconlist.append(heatercon)
+    hconlist.sort(key=lambda x: x.vmax, reverse=True)
+    return hconlist
 
-
-htrcons = []
-for phcon in phcons:
-    htr = phcon[0]
-    l = phcon[1]
-    conn = phcon[2]
-    hcon = HtrConn(htr, l, conn)
-    htrcons.append(hcon)
-
-pp.pprint(htrcons)
+pp.pprint(possible_heaters())
