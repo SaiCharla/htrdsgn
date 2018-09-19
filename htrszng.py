@@ -10,20 +10,20 @@ import pprint as pp
 parser = arg.ArgumentParser()
 parser.add_argument("watts", type=float, help="Required Wattage")
 parser.add_argument("length", type=float, help="Required length in ft")
-parser.add_argument("-t", "--tolerence", type=float, help="Length tolerence \
-        default=0.5")
-parser.add_argument("-f", "--factor", type=float, help="Factor of safety \
-        default=1.5")
+parser.add_argument("-tol", "--tolerance",  help="Length tolerence default=0.5",
+        type=float)
+parser.add_argument("-f", "--factor", help="Factor of safety default=1.5",
+        type=float)
 args = parser.parse_args()
 
 # Assigning them as globals
-w = args.watts
-l = args.length
-if args.tolerence:
-    tol = args.tolerence
+w = args.watts        # Given Wattage
+l = args.length       # Given Length
+if args.tolerance:    # Length tolerence
+    tol = args.tolerance
 else:
     tol = 0.5
-if args.factor:
+if args.factor:       # Factor of safety
     f = args.factor
 else:
     f = 1.5
@@ -33,14 +33,12 @@ Imax = 10    # Maximum current
 
 # Connection codes
 cons = ['Series-Parallel', '4-lead-Series  ', '4-lead-Parallel',
-        '2-lead-Parallel', '2-lead-Series  ']
-conbr = [2, 1, 4, 2, 1]
+        '2-lead-Parallel', '2-lead-Series  ']    # Types of connections
+conbr = [2, 1, 4, 2, 1]    # No. of parallel branches in each connection
 condctbr = dict(zip(cons, conbr))
 conr = [lambda x: x, lambda x: 4*x, lambda x: x/4.0, lambda x: x/2.0,
-        lambda x: 2*x]
+        lambda x: 2*x]     # Resistance formula for each connection
 condctr = dict(zip(cons, conr))
-conp = [4, 4, 4, 2, 2]
-condctp = dict(zip(cons, conp))
 
 
 class HtrType:
@@ -56,16 +54,16 @@ class HtrType:
 
 
 # Clayborn heater types
-A = HtrType(1.9, 25, 'A')
-B = HtrType(3.2, 25, 'B')
-C = HtrType(4, 23, 'C')
-D = HtrType(4.9, 20, 'D')
-E = HtrType(7, 25, 'E')
-F = HtrType(8.8, 23, 'F')
-G = HtrType(10.8, 20, 'G')
-H = HtrType(13.2, 20, 'H')
-J = HtrType(21.3, 13, 'J')
-K = HtrType(26.8, 10, 'K')
+A = HtrType(1.9, 70/4.0, 'A')
+B = HtrType(3.2, 70/4.0, 'B')
+C = HtrType(4, 62/4.0, 'C')
+D = HtrType(4.9, 52/4.0, 'D')
+E = HtrType(7, 70/4.0, 'E')
+F = HtrType(8.8, 62/4.0, 'F')
+G = HtrType(10.8, 52/4.0, 'G')
+H = HtrType(13.2, 52/4.0, 'H')
+J = HtrType(21.3, 32/4.0, 'J')
+K = HtrType(26.8, 25/4.0, 'K')
 hlist = [A, B, C, D, E, F, G, H, J, K]
 
 
@@ -77,18 +75,21 @@ class HtrConn:
         self.htr = htr
         self.l = l
         self.conn = conn
+        self.resistance = self.get_resistance()
         self.imax = self.get_imax()
         self.vmax = self.get_vmax()
 
     def __str__(self):
         # for printing
-        s = "{} type,\t {} ft,\t {},\t {} amp,\t {} V"
+        s = "{} type,\t{} ft,\t{},\t{} ohms,\t{} amps,\t{} V"
         heater = self.htr.code
-        length = str(round(self.l, 2)).rjust(5, '0')
+        length = ('{0:.3f}'.format(round(self.l, 3))).rjust(6, '0')
         connection = self.conn
-        imax = str(round(self.imax, 2)).rjust(5, '0')
-        vmax = str(round(self.vmax, 2)).rjust(5, '0')
-        return s.format(heater, length, connection, imax, vmax)
+        resistance = ('{0:.3f}'.format(round(self.resistance, 3))).rjust(6,
+                '0')
+        imax = ('{0:.3f}'.format(round(self.imax, 3))).rjust(6, '0')
+        vmax = ('{0:.3f}'.format(round(self.vmax, 3))).rjust(6, '0')
+        return s.format(heater, length, connection, resistance, imax, vmax)
 
     def __repr__(self):
         return self.__str__()
@@ -101,11 +102,14 @@ class HtrConn:
         imax = m.sqrt(pmaxlead/rlead) * nprls
         return imax
 
+    def get_resistance(self):
+        """Returns the resistance of the connection"""
+        r = condctr[self.conn](self.htr.ohmsPerFt*self.l)
+        return r
+
     def get_vmax(self):
         """ Get max. voltage for the given connection"""
-        pmax = (self.htr.maxWatt/f) * condctp[self.conn]
-        r = condctr[self.conn](self.htr.ohmsPerFt*self.l)
-        vmax = m.sqrt(pmax*r)
+        vmax = self.imax * self.resistance
         return vmax
 
     def check_vmax(self):
@@ -168,4 +172,7 @@ def possible_heaters():
     hconlist.sort(key=lambda x: x.vmax, reverse=True)
     return hconlist
 
+ps = "{},\t{},\t{},\t{},\t{},\t{}\n"
+print(ps.format('Heater type', 'Length', 'Connection', 'Resistance',
+    'Max. Current','Max. Voltage'))
 pp.pprint(possible_heaters())
