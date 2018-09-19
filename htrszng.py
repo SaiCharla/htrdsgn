@@ -3,7 +3,6 @@
 
 import math as m
 import argparse as arg
-import pprint as pp
 
 
 # input arguments
@@ -167,7 +166,9 @@ def possible_heaters():
     hconlist.sort(key=lambda x: x.vmax, reverse=True)
     return hconlist
 
-ps = "{},\t{},\t{},\t{},\t{},\t{}\n"
+ps = "{},\t{},\t{},\t{},\t{},\t{}"
 print(ps.format('Heater type', 'Length', 'Connection', 'Resistance',
     'Max. Current','Max. Voltage'))
-pp.pprint(possible_heaters())
+for sizing in possible_heaters():
+    print(sizing)
+
