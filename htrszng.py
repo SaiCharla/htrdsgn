@@ -94,22 +94,19 @@ class HtrConn:
     def __repr__(self):
         return self.__str__()
 
-    def get_imax(self):
-        """ Get the max. current for given heater length connection"""
-        pmaxlead = self.htr.maxWatt/f
-        rlead = self.htr.ohmsPerFt*l
-        nprls = condctbr[self.conn]
-        imax = m.sqrt(pmaxlead/rlead) * nprls
-        return imax
-
     def get_resistance(self):
         """Returns the resistance of the connection"""
         r = condctr[self.conn](self.htr.ohmsPerFt*self.l)
         return r
 
+    def get_imax(self):
+        """ Get the max. current for given heater length connection"""
+        imax = m.sqrt(w/self.resistance)
+        return imax
+
     def get_vmax(self):
         """ Get max. voltage for the given connection"""
-        vmax = self.imax * self.resistance
+        vmax = m.sqrt(w*self.resistance)
         return vmax
 
     def check_vmax(self):
