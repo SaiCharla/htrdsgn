@@ -34,8 +34,6 @@ Imax = 10    # Maximum current
 # Connection codes
 cons = ['Series-Parallel', '4-lead-Series  ', '4-lead-Parallel',
         '2-lead-Parallel', '2-lead-Series  ']    # Types of connections
-conbr = [2, 1, 4, 2, 1]    # No. of parallel branches in each connection
-condctbr = dict(zip(cons, conbr))
 conr = [lambda x: x, lambda x: 4*x, lambda x: x/4.0, lambda x: x/2.0,
         lambda x: 2*x]     # Resistance formula for each connection
 condctr = dict(zip(cons, conr))
