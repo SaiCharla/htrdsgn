@@ -21,11 +21,11 @@ l = args.length       # Given Length
 if args.tolerance:    # Length tolerence
     tol = args.tolerance
 else:
-    tol = 0.5
+    tol = 0.25
 if args.factor:       # Factor of safety
     f = args.factor
 else:
-    f = 1.5
+    f = 2
 
 Vmax = 60    # Maximum voltage
 Imax = 10    # Maximum current
