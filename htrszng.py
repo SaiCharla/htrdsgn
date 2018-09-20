@@ -3,7 +3,7 @@
 
 import math as m
 import argparse as arg
-
+import htmltable as ht
 
 # input arguments
 parser = arg.ArgumentParser()
@@ -78,7 +78,7 @@ class HtrConn:
 
     def __str__(self):
         # for printing
-        s = "{} type,\t{} ft,\t{},\t{} ohms,\t{} amps,\t{} V"
+        s = "{} type\t{} ft\t{}\t{} ohms\t{} amps\t{} V"
         heater = self.htr.code
         length = ('{0:.3f}'.format(round(self.l, 3))).rjust(6, '0')
         connection = self.conn
@@ -164,11 +164,11 @@ def possible_heaters():
                 if heatercon.check_vmax_imax():
                     hconlist.append(heatercon)
     hconlist.sort(key=lambda x: x.vmax, reverse=True)
-    return hconlist
+    hconstr = [str(htr) for htr in hconlist]
+    return hconlist, hconstr
 
-ps = "{},\t{},\t{},\t{},\t{},\t{}"
-print(ps.format('Heater type', 'Length', 'Connection', 'Resistance',
-    'Max. Current','Max. Voltage'))
-for sizing in possible_heaters():
-    print(sizing)
-
+ps = "{}\t{}\t{}\t{}\t{}\t{}"
+header = ps.format('Heater type', 'Length', 'Connection', 'Resistance',
+    'Max. Current','Max. Voltage')
+body = possible_heaters()[1]
+print(ht.htable(header, body))
